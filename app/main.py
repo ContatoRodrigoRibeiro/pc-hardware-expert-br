@@ -1,15 +1,17 @@
 import streamlit as st
 import re
+import sys
+
+# === FIX PARA STREAMLIT CLOUD ===
+sys.path.insert(0, ".")
+
+# Importa do core (agora deve funcionar)
 from core.recommender import recomendar_build, init_database
 
-# Inicializa o banco de dados na primeira execução
+# Inicializa o banco de dados local
 init_database()
 
-st.set_page_config(
-    page_title="PC Builder BR",
-    page_icon="🛠️",
-    layout="wide"
-)
+st.set_page_config(page_title="PC Builder BR", page_icon="🛠️", layout="wide")
 
 st.title("🛠️ PC Builder BR")
 st.caption("100% Local • Preços Reais do Brasil • Sem API")
@@ -24,14 +26,14 @@ if st.button("🚀 Montar Configuração Ideal", type="primary", use_container_w
     if not objetivo.strip():
         st.warning("Por favor, descreva o que você quer fazer com o PC.")
     else:
-        with st.spinner("Montando a melhor configuração..."):
-            resultado = recomendar_build(objetivo, 0)  # orçamento é extraído do texto
+        with st.spinner("Montando a melhor configuração com preços reais..."):
+            resultado = recomendar_build(objetivo, 0)
 
             st.success(f"✅ Build gerada com sucesso! Total: R$ {resultado['total']:,.0f}")
 
             st.subheader("📋 Sua Configuração Ideal")
 
-            for cat, comp in resultado["build"].items():
+            for cat, comp in resultado.get("build", {}).items():
                 if comp and comp.get("nome"):
                     st.markdown(f"""
                     **{cat}:** {comp['nome']}  
