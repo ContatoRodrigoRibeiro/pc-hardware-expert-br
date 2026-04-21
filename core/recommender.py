@@ -30,7 +30,6 @@ def init_database():
     """)
 
     seed_data = [
-        # CPUs - faixas de preço variadas
         ("CPU", "AMD Ryzen 5 5600", 699, "Kabum", "AM4", 65, "Melhor entrada 1080p", "", datetime.now().isoformat()),
         ("CPU", "Intel Core i5-13400F", 1199, "Terabyte", "LGA1700", 148, "Bom custo-benefício 1080p/1440p", "",
          datetime.now().isoformat()),
@@ -38,8 +37,6 @@ def init_database():
          datetime.now().isoformat()),
         ("CPU", "AMD Ryzen 7 7700", 1899, "Pichau", "AM5", 65, "Ótimo para edição + jogos", "",
          datetime.now().isoformat()),
-
-        # GPUs - faixas de preço variadas
         ("GPU", "AMD RX 7600 8GB", 1599, "Pichau", "PCIe 4.0", 165, "Melhor 1080p custo-benefício", "",
          datetime.now().isoformat()),
         ("GPU", "NVIDIA RTX 4060 Ti 8GB", 1899, "Terabyte", "PCIe 4.0", 160, "1080p/1440p ótimo", "",
@@ -48,31 +45,21 @@ def init_database():
          datetime.now().isoformat()),
         ("GPU", "NVIDIA RTX 4070 12GB", 2899, "Pichau", "PCIe 4.0", 200, "1440p Ultra 100+ FPS", "",
          datetime.now().isoformat()),
-
-        # Placas-mãe
         ("Placa-Mãe", "Gigabyte B760M DS3H", 699, "Terabyte", "LGA1700", 0, "Boa para Intel i5-13400F", "",
          datetime.now().isoformat()),
         ("Placa-Mãe", "ASUS TUF B650M-Plus", 899, "Kabum", "AM5", 0, "Suporte DDR5 + PCIe 5.0", "",
          datetime.now().isoformat()),
-
-        # RAM
         ("RAM", "32GB (2x16GB) DDR4 3200MHz CL16", 399, "Pichau", "DDR4", 0, "Ótimo para AM4 e LGA1700", "",
          datetime.now().isoformat()),
         ("RAM", "32GB (2x16GB) DDR5 6000MHz CL30", 649, "Kabum", "DDR5", 0, "Ideal para AM5", "",
          datetime.now().isoformat()),
-
-        # Armazenamento
         ("Armazenamento", "SSD NVMe 1TB WD SN850X", 549, "Kabum", "NVMe", 0, "Melhor performance", "",
          datetime.now().isoformat()),
         ("Armazenamento", "SSD NVMe 2TB Kingston NV3", 749, "Amazon", "NVMe", 0, "Leitura 6000MB/s", "",
          datetime.now().isoformat()),
-
-        # Fontes
         ("Fonte", "EVGA 650W 80+ Bronze", 399, "Terabyte", "ATX", 650, "Boa entrada", "", datetime.now().isoformat()),
         ("Fonte", "Corsair RM750x 750W 80+ Gold", 549, "Pichau", "ATX", 750, "Totalmente modular", "",
          datetime.now().isoformat()),
-
-        # Gabinetes
         ("Gabinete", "NZXT H5 Flow + Cooler Master Hyper 212", 449, "Pichau", "ATX", 0, "Ótimo custo-benefício", "",
          datetime.now().isoformat()),
         ("Gabinete", "Corsair 4000D Airflow + Deepcool AK400", 599, "Kabum", "ATX", 0, "Excelente airflow", "",
@@ -86,40 +73,44 @@ def init_database():
     """, seed_data)
     conn.commit()
     conn.close()
+    print("✅ Banco de dados inicializado com 18 componentes")
 
 
 def recomendar_build(objetivo: str, orcamento: float = 0) -> dict:
+    print(f"\n🔍 DEBUG: Iniciando recomendação para: {objetivo}")
+
     conn = get_db_connection()
     objetivo_lower = objetivo.lower()
 
-    # Extrai orçamento do texto (mais robusto)
+    # Extrai orçamento
     orcamento_match = re.search(r'R?\$?\s*(\d+[\.,]?\d*)', objetivo_lower)
     if orcamento_match:
         orcamento = float(orcamento_match.group(1).replace('.', '').replace(',', '.'))
+        print(f"💰 Orçamento extraído do texto: R$ {orcamento}")
     elif orcamento == 0:
-        orcamento = 6000  # orçamento padrão se não especificado
+        orcamento = 6000
+        print(f"💰 Usando orçamento padrão: R$ {orcamento}")
 
-    # Detecta tipo de uso
-    is_gaming = any(x in objetivo_lower for x in ["jogar", "game", "minecraft", "cod", "lol", "cs", "valorant"])
-    is_4k = "4k" in objetivo_lower or "render" in objetivo_lower or "edição" in objetivo_lower
+    # Verifica quantos componentes existem no banco
+    cursor = conn.execute("SELECT COUNT(*) FROM components")
+    total_componentes = cursor.fetchone()[0]
+    print(f"📦 Total de componentes no banco: {total_componentes}")
 
-    # Alocação inteligente baseada no orçamento
-    if orcamento <= 4000:
-        alloc = {"CPU": 0.20, "GPU": 0.35, "Placa-Mãe": 0.12, "RAM": 0.10, "Armazenamento": 0.10, "Fonte": 0.08,
-                 "Gabinete": 0.05}
-    elif orcamento <= 6000:
-        alloc = {"CPU": 0.18, "GPU": 0.38, "Placa-Mãe": 0.11, "RAM": 0.09, "Armazenamento": 0.10, "Fonte": 0.08,
-                 "Gabinete": 0.06}
-    else:
-        alloc = {"CPU": 0.16, "GPU": 0.40, "Placa-Mãe": 0.10, "RAM": 0.08, "Armazenamento": 0.10, "Fonte": 0.08,
-                 "Gabinete": 0.08}
+    if total_componentes == 0:
+        print("❌ ERRO: Banco de dados está vazio!")
+        conn.close()
+        return {"texto": "Erro: Banco vazio", "total": 0, "build": {}}
+
+    # Alocação
+    alloc = {"CPU": 0.18, "GPU": 0.38, "Placa-Mãe": 0.11, "RAM": 0.09, "Armazenamento": 0.10, "Fonte": 0.08,
+             "Gabinete": 0.06}
 
     build = {}
     total = 0
 
-    # Seleciona componentes
     for cat, percent in alloc.items():
-        max_preco = orcamento * percent * 1.2  # margem de 20%
+        max_preco = orcamento * percent * 1.3
+        print(f"🔍 Buscando {cat} com preço máximo R$ {max_preco:.0f}")
 
         cursor = conn.execute("""
             SELECT * FROM components 
@@ -129,9 +120,9 @@ def recomendar_build(objetivo: str, orcamento: float = 0) -> dict:
         """, (cat, max_preco))
 
         opcoes = cursor.fetchall()
+        print(f"   → Encontradas {len(opcoes)} opções para {cat}")
 
         if not opcoes:
-            # Fallback: pega o mais barato disponível
             cursor = conn.execute("""
                 SELECT * FROM components 
                 WHERE categoria = ?
@@ -139,35 +130,35 @@ def recomendar_build(objetivo: str, orcamento: float = 0) -> dict:
                 LIMIT 1
             """, (cat,))
             opcoes = cursor.fetchall()
+            print(f"   → Fallback: {len(opcoes)} opção(ões)")
 
         if opcoes:
             escolhido = random.choice(opcoes)
             build[cat] = dict(escolhido)
             total += escolhido["preco"]
+            print(f"   ✅ Selecionado: {escolhido['nome']} - R$ {escolhido['preco']}")
+        else:
+            print(f"   ❌ NENHUMA opção encontrada para {cat}")
 
     conn.close()
 
-    # Gera texto formatado
-    texto = f"""Visão Geral: Build otimizada para {objetivo} com excelente custo-benefício no mercado brasileiro atual (preços de Abril/2026).
+    print(f"\n📊 RESUMO: Total = R$ {total}")
+
+    if total == 0:
+        print("❌ ERRO: Total zerado! Verifique o banco de dados.")
+
+    # Texto
+    texto = f"""Visão Geral: Build otimizada para {objetivo}.
 
 Lista de Componentes:
+* Processador (CPU): {build.get('CPU', {}).get('nome', 'N/A')} | R$ {build.get('CPU', {}).get('preco', 0):,.0f}
+* Placa de Vídeo (GPU): {build.get('GPU', {}).get('nome', 'N/A')} | R$ {build.get('GPU', {}).get('preco', 0):,.0f}
+* Placa-Mãe: {build.get('Placa-Mãe', {}).get('nome', 'N/A')} | R$ {build.get('Placa-Mãe', {}).get('preco', 0):,.0f}
+* Memória RAM: {build.get('RAM', {}).get('nome', 'N/A')} | R$ {build.get('RAM', {}).get('preco', 0):,.0f}
+* Armazenamento: {build.get('Armazenamento', {}).get('nome', 'N/A')} | R$ {build.get('Armazenamento', {}).get('preco', 0):,.0f}
+* Fonte de Alimentação: {build.get('Fonte', {}).get('nome', 'N/A')} | R$ {build.get('Fonte', {}).get('preco', 0):,.0f}
+* Gabinete e Refrigeração: {build.get('Gabinete', {}).get('nome', 'N/A')} | R$ {build.get('Gabinete', {}).get('preco', 0):,.0f}
 
-* Processador (CPU): {build.get('CPU', {}).get('nome', 'N/A')} | Preço: R$ {build.get('CPU', {}).get('preco', 0):,.0f} | Desempenho: {build.get('CPU', {}).get('desempenho', 'N/A')}
-  * Alternativa (AMD/Intel): AMD Ryzen 5 5600 | R$ 699
-
-* Placa de Vídeo (GPU): {build.get('GPU', {}).get('nome', 'N/A')} | Preço: R$ {build.get('GPU', {}).get('preco', 0):,.0f} | Desempenho: {build.get('GPU', {}).get('desempenho', 'N/A')}
-  * Alternativa (Nvidia/AMD): AMD RX 7600 8GB | R$ 1.599
-
-* Placa-Mãe: {build.get('Placa-Mãe', {}).get('nome', 'N/A')} | Preço: R$ {build.get('Placa-Mãe', {}).get('preco', 0):,.0f} | Motivo: {build.get('Placa-Mãe', {}).get('desempenho', 'N/A')}
-
-* Memória RAM: {build.get('RAM', {}).get('nome', 'N/A')} | Preço: R$ {build.get('RAM', {}).get('preco', 0):,.0f}
-
-* Armazenamento: {build.get('Armazenamento', {}).get('nome', 'N/A')} | Preço: R$ {build.get('Armazenamento', {}).get('preco', 0):,.0f}
-
-* Fonte de Alimentação: {build.get('Fonte', {}).get('nome', 'N/A')} | Preço: R$ {build.get('Fonte', {}).get('preco', 0):,.0f}
-
-* Gabinete e Refrigeração: {build.get('Gabinete', {}).get('nome', 'N/A')} | Preço: R$ {build.get('Gabinete', {}).get('preco', 0):,.0f}
-
-Valor Total Estimado: R$ {total:,.0f} (dentro do orçamento de R$ {orcamento:,.0f})"""
+Valor Total Estimado: R$ {total:,.0f}"""
 
     return {"texto": texto, "total": total, "build": build}
