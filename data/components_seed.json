@@ -1,0 +1,10 @@
+{
+  "cpus": [
+    {"nome": "AMD Ryzen 5 7600", "preco": 1299, "socket": "AM5"},
+    {"nome": "Intel Core i5-13400F", "preco": 1199, "socket": "LGA1700"}
+  ],
+  "gpus": [
+    {"nome": "NVIDIA RTX 4070 12GB", "preco": 2899, "tdp": 200},
+    {"nome": "AMD RX 7800 XT 16GB", "preco": 2799, "tdp": 263}
+  ]
+}
