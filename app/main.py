@@ -1,11 +1,14 @@
 import streamlit as st
 import re
 import sys
+import os
 
-# === FIX PARA STREAMLIT CLOUD ===
-sys.path.insert(0, ".")
+# ============================================
+# FIX PARA STREAMLIT CLOUD - ADICIONA O DIRETÓRIO RAIZ AO PATH
+# ============================================
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Importa do core (agora deve funcionar)
+# Agora os imports do core vão funcionar
 from core.recommender import recomendar_build, init_database
 
 # Inicializa o banco de dados local
@@ -18,7 +21,7 @@ st.caption("100% Local • Preços Reais do Brasil • Sem API")
 
 objetivo = st.text_area(
     "O que você quer fazer com o PC?",
-    placeholder="Ex: computador para jogar league of legends de até R$ 5000",
+    placeholder="Ex: computador para renderizar vídeos em 4k de R$6000",
     height=100
 )
 
